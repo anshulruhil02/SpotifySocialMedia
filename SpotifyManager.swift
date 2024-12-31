@@ -13,16 +13,17 @@ class SpotifyManager: NSObject, ObservableObject, SPTAppRemoteDelegate, SPTAppRe
     }()
 
     private var appRemote: SPTAppRemote?
-    private(set) var accessToken: String? // Define the access token
+    private(set) var accessToken: String?
 
     @Published var isConnected = false
     @Published var errorMessage: String?
     @Published var topTracks: [String] = []
+    @Published var topArtists: [String] = [] // New variable for top artists
 
     private let requiredScopes: [String] = [
-        "user-top-read", // Access to user’s top tracks
-        "user-read-email", // Access to user’s email
-        "user-read-private" // Access to user’s private details
+        "user-top-read",
+        "user-read-email",
+        "user-read-private"
     ]
 
     override init() {
@@ -57,7 +58,7 @@ class SpotifyManager: NSObject, ObservableObject, SPTAppRemoteDelegate, SPTAppRe
         let parameters = appRemote.authorizationParameters(from: url)
         if let token = parameters?[SPTAppRemoteAccessTokenKey] {
             appRemote.connectionParameters.accessToken = token
-            self.accessToken = token // Assign the access token
+            self.accessToken = token
             appRemote.connect()
         } else if let errorDescription = parameters?[SPTAppRemoteErrorDescriptionKey] {
             self.errorMessage = errorDescription
@@ -67,22 +68,64 @@ class SpotifyManager: NSObject, ObservableObject, SPTAppRemoteDelegate, SPTAppRe
     // MARK: - Fetch Top Tracks
 
     func fetchTopTracks() {
+        fetchFromSpotifyAPI(endpoint: "me/top/tracks?time_range=short_term&limit=10") { [weak self] json in
+            guard let self = self else { return }
+            if let items = json["items"] as? [[String: Any]] {
+                let trackNames = items.compactMap { $0["name"] as? String }
+                DispatchQueue.main.async {
+                    self.topTracks = trackNames
+                    self.errorMessage = nil
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.errorMessage = "Unexpected data format for tracks."
+                }
+            }
+        }
+    }
+
+    // MARK: - Fetch Top Artists
+
+    func fetchTopArtists() {
+        fetchFromSpotifyAPI(endpoint: "me/top/artists?time_range=short_term&limit=10") { [weak self] json in
+            guard let self = self else { return }
+            if let items = json["items"] as? [[String: Any]] {
+                let artistNames = items.compactMap { $0["name"] as? String }
+                DispatchQueue.main.async {
+                    self.topArtists = artistNames
+                    self.errorMessage = nil
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.errorMessage = "Unexpected data format for artists."
+                }
+            }
+        }
+    }
+    
+    
+
+    // MARK: - Generic Spotify API Fetcher
+
+    private func fetchFromSpotifyAPI(endpoint: String, completion: @escaping ([String: Any]) -> Void) {
         guard let token = accessToken else {
             print("No access token available")
-            self.errorMessage = "Authentication required to fetch tracks."
+            DispatchQueue.main.async {
+                self.errorMessage = "Authentication required to fetch data."
+            }
             return
         }
 
-        let url = URL(string: "https://api.spotify.com/v1/me/top/tracks?time_range=short_term&limit=10")!
+        let url = URL(string: "https://api.spotify.com/v1/\(endpoint)")!
         var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.httpMethod = "GET"
 
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
-                print("Error fetching top tracks: \(error.localizedDescription)")
+                print("Error fetching data: \(error.localizedDescription)")
                 DispatchQueue.main.async {
-                    self.errorMessage = "Failed to fetch top tracks."
+                    self.errorMessage = "Failed to fetch data."
                 }
                 return
             }
@@ -98,21 +141,7 @@ class SpotifyManager: NSObject, ObservableObject, SPTAppRemoteDelegate, SPTAppRe
             do {
                 if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
                     print("Raw JSON Response: \(json)")
-
-                    if let items = json["items"] as? [[String: Any]] {
-                        let trackNames = items.compactMap { track in
-                            return track["name"] as? String
-                        }
-                        DispatchQueue.main.async {
-                            self.topTracks = trackNames
-                            self.errorMessage = nil
-                        }
-                    } else {
-                        print("Unexpected JSON format: \(json)")
-                        DispatchQueue.main.async {
-                            self.errorMessage = "Unexpected data format."
-                        }
-                    }
+                    completion(json)
                 } else {
                     print("Failed to parse JSON into dictionary")
                     DispatchQueue.main.async {
@@ -122,7 +151,7 @@ class SpotifyManager: NSObject, ObservableObject, SPTAppRemoteDelegate, SPTAppRe
             } catch {
                 print("Error decoding JSON: \(error.localizedDescription)")
                 DispatchQueue.main.async {
-                    self.errorMessage = "Failed to parse track data."
+                    self.errorMessage = "Failed to parse data."
                 }
             }
         }
@@ -135,7 +164,7 @@ class SpotifyManager: NSObject, ObservableObject, SPTAppRemoteDelegate, SPTAppRe
         print("Spotify App Remote connected successfully!")
         self.isConnected = true
         self.errorMessage = nil
-        appRemote.userAPI?.delegate = self // Set the delegate for the user API
+        appRemote.userAPI?.delegate = self
     }
 
     func appRemote(_ appRemote: SPTAppRemote, didFailConnectionAttemptWithError error: Error?) {
@@ -160,4 +189,12 @@ class SpotifyManager: NSObject, ObservableObject, SPTAppRemoteDelegate, SPTAppRe
         print("User API error: \(error.localizedDescription)")
         self.errorMessage = "Failed to fetch user data."
     }
+
+    func clearData() {
+        DispatchQueue.main.async {
+            self.topTracks.removeAll()
+            self.topArtists.removeAll()
+        }
+    }
+
 }
