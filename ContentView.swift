@@ -16,6 +16,33 @@ struct ContentView: View {
                 Text("Connected to Spotify!")
                     .font(.headline)
                     .padding()
+
+                Button(action: {
+                    spotifyManager.fetchTopTracks()
+                }) {
+                    Text("Fetch Top Tracks")
+                        .font(.title2)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+                .padding(.bottom)
+
+                if !spotifyManager.topTracks.isEmpty {
+                    Text("Your Top Tracks")
+                        .font(.headline)
+                        .padding(.bottom, 5)
+
+                    List(spotifyManager.topTracks, id: \.self) { track in
+                        Text(track)
+                            .padding(.vertical, 5)
+                    }
+                } else {
+                    Text("No tracks available yet. Fetch your top tracks!")
+                        .foregroundColor(.gray)
+                        .padding()
+                }
             } else {
                 Button(action: {
                     spotifyManager.connect()
@@ -28,6 +55,7 @@ struct ContentView: View {
                         .cornerRadius(10)
                 }
             }
+
             if let errorMessage = spotifyManager.errorMessage {
                 Text(errorMessage)
                     .foregroundColor(.red)
