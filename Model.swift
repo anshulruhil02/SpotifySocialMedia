@@ -29,3 +29,10 @@ struct Artist: Codable {
 struct ImageArtist: Codable {
     let url: String
 }
+
+struct BrowseAlbum: Identifiable {
+    let id = UUID()
+    let name: String
+    let artistName: String
+    let imageUrl: String
+}

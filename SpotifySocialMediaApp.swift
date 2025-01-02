@@ -9,16 +9,17 @@ import SwiftUI
 
 @main
 struct SpotifySocialMediaApp: App {
-    @StateObject private var spotifyManager = SpotifyManager.shared
+    
+    private var authenticationService = AuthenticationService.shared
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(spotifyManager)
-                .onOpenURL { url in
-                    print("onOpenURL called with URL: \(url)")
-                    spotifyManager.handleURL(url)
-                }
+            .onOpenURL { url in
+                print("onOpenURL called with URL: \(url)")
+                // Let AuthenticationService handle the OAuth callback
+                authenticationService.handleURL(url)
+            }
         }
     }
 }

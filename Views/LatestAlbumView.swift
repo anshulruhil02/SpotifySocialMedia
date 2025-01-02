@@ -1,9 +1,8 @@
 import SwiftUI
 
 struct AlbumsView: View {
-    @EnvironmentObject var spotifyManager: SpotifyManager
-    @State private var searchText: String = "" // Search query text
-
+    @ObservedObject var viewModel: AlbumsViewModel
+    
     var body: some View {
         VStack(alignment: .leading) {
             Text("Search Albums")
@@ -13,18 +12,14 @@ struct AlbumsView: View {
 
             // Search Bar
             HStack {
-                TextField("Search albums...", text: $searchText, onCommit: {
-                    if !searchText.isEmpty {
-                        spotifyManager.searchAlbums(query: searchText)
-                    }
+                TextField("Search albums...", text: $viewModel.searchText, onCommit: {
+                    viewModel.searchAlbums()
                 })
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding(.horizontal)
 
                 Button(action: {
-                    if !searchText.isEmpty {
-                        spotifyManager.searchAlbums(query: searchText)
-                    }
+                    viewModel.searchAlbums()
                 }) {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.blue)
@@ -33,7 +28,7 @@ struct AlbumsView: View {
             }
             .padding(.top)
 
-            if spotifyManager.latestAlbums.isEmpty {
+            if viewModel.latestAlbums.isEmpty {
                 Spacer()
                 Text("No albums found.")
                     .foregroundColor(.gray)
@@ -43,8 +38,9 @@ struct AlbumsView: View {
             } else {
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
-                        ForEach(spotifyManager.latestAlbums) { album in
+                        ForEach(viewModel.latestAlbums) { album in
                             VStack {
+                                // AsyncImage for album cover
                                 AsyncImage(url: URL(string: album.imageUrl)) { phase in
                                     if let image = phase.image {
                                         image
@@ -62,7 +58,7 @@ struct AlbumsView: View {
                                             .cornerRadius(10)
                                     }
                                 }
-
+                                
                                 Text(album.name)
                                     .font(.headline)
                                     .foregroundColor(.primary)
@@ -89,7 +85,7 @@ struct AlbumsView: View {
         }
         .background(Color(UIColor.systemGroupedBackground))
         .onAppear {
-            spotifyManager.fetchLatestAlbums()
+            viewModel.onAppear()
         }
     }
 }

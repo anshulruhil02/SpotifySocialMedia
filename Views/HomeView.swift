@@ -8,20 +8,18 @@
 import SwiftUI
 
 struct HomeView: View {
-    @EnvironmentObject var spotifyManager: SpotifyManager
-
+    @ObservedObject var viewModel: HomeViewModel
+    
     var body: some View {
         VStack {
-            if spotifyManager.isConnected {
+            if viewModel.isConnected {
                 Text("Connected to Spotify!")
                     .font(.headline)
                     .padding()
 
                 HStack(spacing: 20) {
                     Button(action: {
-                        // Clear all data and fetch top tracks
-                        spotifyManager.clearData()
-                        spotifyManager.fetchTopTracks()
+                        viewModel.fetchTopTracks()
                     }) {
                         Text("Fetch Top Tracks")
                             .font(.title3)
@@ -32,9 +30,7 @@ struct HomeView: View {
                     }
 
                     Button(action: {
-                        // Clear all data and fetch top artists
-                        spotifyManager.clearData()
-                        spotifyManager.fetchTopArtists()
+                        viewModel.fetchTopArtists()
                     }) {
                         Text("Fetch Top Artists")
                             .font(.title3)
@@ -45,9 +41,7 @@ struct HomeView: View {
                     }
 
                     Button(action: {
-                        // Clear all data and fetch top genres
-                        spotifyManager.clearData()
-                        spotifyManager.fetchGenres()
+                        viewModel.fetchGenres()
                     }) {
                         Text("Fetch Top Genres")
                             .font(.title3)
@@ -61,19 +55,24 @@ struct HomeView: View {
 
                 ScrollView {
                     VStack(spacing: 20) {
-                        if !spotifyManager.topTracks.isEmpty {
-                            CardView(title: "Your Top Tracks", items: spotifyManager.topTracks)
+                        if !viewModel.topTracks.isEmpty {
+                            CardView(title: "Your Top Tracks",
+                                     items: viewModel.topTracks)
                         }
 
-                        if !spotifyManager.topArtistsWithImages.isEmpty {
-                            ImageCardView(title: "Your Top Artists", items: spotifyManager.topArtistsWithImages)
+                        if !viewModel.topArtistsWithImages.isEmpty {
+                            ImageCardView(title: "Your Top Artists",
+                                          items: viewModel.topArtistsWithImages)
                         }
 
-                        if !spotifyManager.genres.isEmpty {
-                            CardView(title: "Your Top Genres", items: spotifyManager.genres)
+                        if !viewModel.genres.isEmpty {
+                            CardView(title: "Your Top Genres",
+                                     items: viewModel.genres)
                         }
 
-                        if spotifyManager.topTracks.isEmpty && spotifyManager.topArtistsWithImages.isEmpty && spotifyManager.genres.isEmpty {
+                        if viewModel.topTracks.isEmpty
+                            && viewModel.topArtistsWithImages.isEmpty
+                            && viewModel.genres.isEmpty {
                             Text("No data available yet. Fetch your top tracks, artists, and genres!")
                                 .foregroundColor(.gray)
                                 .padding()
@@ -82,7 +81,7 @@ struct HomeView: View {
                 }
             } else {
                 Button(action: {
-                    spotifyManager.connect()
+                    viewModel.connect()
                 }) {
                     Text("Connect to Spotify")
                         .font(.title)
@@ -93,7 +92,7 @@ struct HomeView: View {
                 }
             }
 
-            if let errorMessage = spotifyManager.errorMessage {
+            if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
                     .foregroundColor(.red)
                     .padding()
@@ -155,6 +154,10 @@ struct ImageCardView: View {
                             image
                                 .resizable()
                                 .scaledToFill()
+                                .frame(width: 50, height: 50)
+                                .clipShape(Circle())
+                        case .failure(_):
+                            Color.red
                                 .frame(width: 50, height: 50)
                                 .clipShape(Circle())
                         @unknown default:
