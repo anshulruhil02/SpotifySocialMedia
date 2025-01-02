@@ -19,13 +19,13 @@ struct Track: Codable {
 
 struct Album: Codable {
     let name: String
-    let images: [Image]
+    let images: [ImageArtist]
 }
 
 struct Artist: Codable {
     let name: String
 }
 
-struct Image: Codable {
+struct ImageArtist: Codable {
     let url: String
 }
