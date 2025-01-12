@@ -8,8 +8,8 @@
 import Foundation
 import SpotifyiOS
 
-final class ArtistService: ObservableObject {
-    static let shared = ArtistService()
+final class ArtistAndGenreService: ObservableObject {
+    static let shared = ArtistAndGenreService()
     
     @Published var topArtistsWithImages: [(name: String, imageUrl: String)] = []
     @Published var genres: [String] = []

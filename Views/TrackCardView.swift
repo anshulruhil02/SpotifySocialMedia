@@ -22,9 +22,6 @@ struct TrackCardView: View {
                 }
             }
         }
-        .task {
-            await viewModel.fetchTopTracks() // Automatically fetch tracks
-        }
     }
 }
 

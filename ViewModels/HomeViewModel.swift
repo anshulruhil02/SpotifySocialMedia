@@ -12,7 +12,7 @@ final class HomeViewModel: ObservableObject {
     // MARK: - Services
     private let authService: AuthenticationService
     private let trackService: TrackService
-    private let artistService: ArtistService
+    private let artistAndGenreService: ArtistAndGenreService
     private let userprofileService: UserProfileService
 
     // MARK: - Published Properties (UI State)
@@ -27,12 +27,12 @@ final class HomeViewModel: ObservableObject {
     // MARK: - Initializer with Dependency Injection
     init(authService: AuthenticationService,
          trackService: TrackService,
-         artistService: ArtistService,
+         artistAndGenreService: ArtistAndGenreService,
          userprofileService: UserProfileService   )
     {
         self.authService = authService
         self.trackService = trackService
-        self.artistService = artistService
+        self.artistAndGenreService = artistAndGenreService
         self.userprofileService = userprofileService
         
         // Sync initial states
@@ -68,15 +68,15 @@ final class HomeViewModel: ObservableObject {
             .store(in: &cancellables)
 
         // ArtistService Observations
-        artistService.$topArtistsWithImages
+        artistAndGenreService.$topArtistsWithImages
             .receive(on: DispatchQueue.main)
             .assign(to: &$topArtistsWithImages)
 
-        artistService.$genres
+        artistAndGenreService.$genres
             .receive(on: DispatchQueue.main)
             .assign(to: &$genres)
 
-        artistService.$errorMessage
+        artistAndGenreService.$errorMessage
             .compactMap { $0 } // Only use non-nil errors
             .receive(on: DispatchQueue.main)
             .sink { [weak self] errorText in
@@ -104,19 +104,30 @@ final class HomeViewModel: ObservableObject {
     }
 
     func fetchTopTracks() {
-        clearData()
+        saveListeningData()
         trackService.fetchTopTracks()
     }
 
     func fetchTopArtists() {
         clearData()
-        artistService.fetchTopArtists()
+        artistAndGenreService.fetchTopArtists()
     }
 
     func fetchGenres() {
         clearData()
-        artistService.fetchGenres()
+        artistAndGenreService.fetchGenres()
     }
+    
+    func saveListeningData() {
+        let trackNames = topTracks.map { $0.name }
+        print("Saving tracks: \(trackNames)")
+        userprofileService.updateListeningData(
+            tracks: trackNames,
+            albums: topArtistsWithImages.map { $0.name },
+            genres: genres
+        )
+    }
+
     
 //    func saveListeningData() {
 //        userprofileService.updateListeningData(

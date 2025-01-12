@@ -8,7 +8,7 @@ struct ContentView: View {
     @StateObject private var homeViewModel = HomeViewModel(
         authService: AuthenticationService.shared,
         trackService: TrackService.shared,
-        artistService: ArtistService.shared,
+        artistAndGenreService: ArtistAndGenreService.shared,
         userprofileService: UserProfileService.shared
     )
     

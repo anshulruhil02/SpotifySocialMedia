@@ -17,91 +17,91 @@ struct HomeView: View {
                     Text("Connected to Spotify!")
                         .font(.headline)
                         .padding()
-                    
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.white)
-                        .shadow(radius: 5)
-                        .frame(height: 200)
-                        .overlay(
-                            VStack {
-                                Text("Tracks")
-                                    .font(.title)
-                                    .fontWeight(.bold)
-                                
-                                Text("Discover your favorite tracks")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                                
-                                Spacer()
-                                
-                                // "View All Tracks" Button
-                                NavigationLink(destination: TrackCardView(viewModel: viewModel)) {
-                                    Text("View All Tracks")
-                                        .font(.headline)
-                                        .foregroundColor(.white)
-                                        .padding()
-                                        .frame(maxWidth: .infinity)
-                                        .background(Color.blue)
-                                        .cornerRadius(10)
+                    VStack{
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.white)
+                            .shadow(radius: 5)
+                            .frame(height: 200)
+                            .overlay(
+                                VStack {
+                                    Text("Tracks")
+                                        .font(.title)
+                                        .fontWeight(.bold)
+                                    
+                                    Text("Discover your favorite tracks")
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                    
+                                    Spacer()
+                                    
+                                    // "View All Tracks" Button
+                                    NavigationLink(destination: TrackCardView(viewModel: viewModel)) {
+                                        Text("View All Tracks")
+                                            .font(.headline)
+                                            .foregroundColor(.white)
+                                            .padding()
+                                            .frame(maxWidth: .infinity)
+                                            .background(Color.blue)
+                                            .cornerRadius(10)
+                                    }
+                                    .padding(.horizontal)
                                 }
-                                .padding(.horizontal)
+                                    .padding()
+                            )
+                            .padding()
+                        
+                        
+                        HStack(spacing: 20) {
+                            
+                            Button(action: {
+                                viewModel.fetchTopArtists()
+                            }) {
+                                Text("Top Artists")
+                                    .font(.title3)
+                                    .padding()
+                                    .background(Color.purple)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
                             }
-                                .padding()
-                        )
-                        .padding()
-                        .task {
-                            await viewModel.fetchTopTracks() // Automatically fetch tracks
+                            
+                            Button(action: {
+                                viewModel.fetchGenres()
+                            }) {
+                                Text("Top Genres")
+                                    .font(.title3)
+                                    .padding()
+                                    .background(Color.orange)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
+                            }
                         }
-                    
-                    HStack(spacing: 20) {
+                        .padding(.bottom, 20)
                         
-                        Button(action: {
-                            viewModel.fetchTopArtists()
-                            //                        viewModel.saveListeningData() // Automatically save after fetching
-                        }) {
-                            Text("Top Artists")
-                                .font(.title3)
-                                .padding()
-                                .background(Color.purple)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
-                        }
-                        
-                        Button(action: {
-                            viewModel.fetchGenres()
-                            //                        viewModel.saveListeningData() // Automatically save after fetching
-                        }) {
-                            Text("Top Genres")
-                                .font(.title3)
-                                .padding()
-                                .background(Color.orange)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
+                        ScrollView {
+                            VStack(spacing: 20) {
+                                
+                                if !viewModel.topArtistsWithImages.isEmpty {
+                                    ImageCardView(title: "Your Top Artists",
+                                                  items: viewModel.topArtistsWithImages)
+                                }
+                                
+                                if !viewModel.genres.isEmpty {
+                                    CardView(title: "Your Top Genres",
+                                             items: viewModel.genres)
+                                }
+                                
+                                if viewModel.topTracks.isEmpty
+                                    && viewModel.topArtistsWithImages.isEmpty
+                                    && viewModel.genres.isEmpty {
+                                    Text("No data available yet. Fetch your top tracks, artists, and genres!")
+                                        .foregroundColor(.gray)
+                                        .padding()
+                                }
+                            }
                         }
                     }
-                    .padding(.bottom, 20)
-                    
-                    ScrollView {
-                        VStack(spacing: 20) {
-                            
-                            if !viewModel.topArtistsWithImages.isEmpty {
-                                ImageCardView(title: "Your Top Artists",
-                                              items: viewModel.topArtistsWithImages)
-                            }
-                            
-                            if !viewModel.genres.isEmpty {
-                                CardView(title: "Your Top Genres",
-                                         items: viewModel.genres)
-                            }
-                            
-                            if viewModel.topTracks.isEmpty
-                                && viewModel.topArtistsWithImages.isEmpty
-                                && viewModel.genres.isEmpty {
-                                Text("No data available yet. Fetch your top tracks, artists, and genres!")
-                                    .foregroundColor(.gray)
-                                    .padding()
-                            }
-                        }
+                    .task {
+                        viewModel.fetchTopTracks() // Automatically fetch tracks
                     }
                 } else {
                     Button(action: {
