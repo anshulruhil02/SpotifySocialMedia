@@ -13,24 +13,27 @@ final class HomeViewModel: ObservableObject {
     private let authService: AuthenticationService
     private let trackService: TrackService
     private let artistService: ArtistService
+    private let userprofileService: UserProfileService
 
     // MARK: - Published Properties (UI State)
     @Published var isConnected: Bool = false
     @Published var errorMessage: String?
 
     // These come from the trackService and artistService, but we store them locally for simpler binding
-    @Published var topTracks: [String] = []
+    @Published var topTracks: [Track] = []
     @Published var topArtistsWithImages: [(name: String, imageUrl: String)] = []
     @Published var genres: [String] = []
 
     // MARK: - Initializer with Dependency Injection
     init(authService: AuthenticationService,
          trackService: TrackService,
-         artistService: ArtistService)
+         artistService: ArtistService,
+         userprofileService: UserProfileService   )
     {
         self.authService = authService
         self.trackService = trackService
         self.artistService = artistService
+        self.userprofileService = userprofileService
         
         // Sync initial states
         self.isConnected = authService.isConnected
@@ -80,6 +83,14 @@ final class HomeViewModel: ObservableObject {
                 self?.errorMessage = errorText
             }
             .store(in: &cancellables)
+        
+        userprofileService.$errorMessage
+            .compactMap { $0 } // Only use non-nil errors
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] errorText in
+                self?.errorMessage = errorText
+            }
+            .store(in: &cancellables)
     }
 
     // MARK: - Actions
@@ -106,6 +117,14 @@ final class HomeViewModel: ObservableObject {
         clearData()
         artistService.fetchGenres()
     }
+    
+//    func saveListeningData() {
+//        userprofileService.updateListeningData(
+//                tracks: topTracks,
+//                albums: topArtistsWithImages.map { $0.name },  // Add album handling later
+//                genres: genres
+//            )
+//        }
 
     func clearData() {
         // Clears local state from published properties
