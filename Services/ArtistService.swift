@@ -20,15 +20,9 @@ final class ArtistAndGenreService: ObservableObject {
     private init() {}
     
     /// Fetch Top Artists
-    func fetchTopArtists() {
-        apiClient.fetchFromSpotifyAPI(endpoint: "me/top/artists?time_range=short_term&limit=10") { [weak self] json in
-            guard let self = self else { return }
-            guard let json = json else {
-                DispatchQueue.main.async {
-                    self.errorMessage = self.apiClient.errorMessage
-                }
-                return
-            }
+    func fetchTopArtists() async {
+        do {
+            let json = try await apiClient.fetchFromSpotifyAPI(endpoint: "me/top/artists?time_range=short_term&limit=10")
             
             if let items = json["items"] as? [[String: Any]] {
                 let artists = items.compactMap { artist -> (String, String)? in
@@ -39,28 +33,27 @@ final class ArtistAndGenreService: ObservableObject {
                     }
                     return (name, imageUrl)
                 }
+                
+                // Update state on the main thread
                 DispatchQueue.main.async {
                     self.topArtistsWithImages = artists
                     self.errorMessage = nil
                 }
             } else {
-                DispatchQueue.main.async {
-                    self.errorMessage = "Unexpected data format for artists."
-                }
+                throw SpotifyAPIError.jsonParsingFailed
+            }
+        } catch {
+            // Handle errors gracefully
+            DispatchQueue.main.async {
+                self.errorMessage = error.localizedDescription
             }
         }
     }
     
     /// Fetch Genres (from top artists)
-    func fetchGenres() {
-        apiClient.fetchFromSpotifyAPI(endpoint: "me/top/artists?time_range=short_term&limit=10") { [weak self] json in
-            guard let self = self else { return }
-            guard let json = json else {
-                DispatchQueue.main.async {
-                    self.errorMessage = self.apiClient.errorMessage
-                }
-                return
-            }
+    func fetchGenres() async {
+        do {
+            let json = try await apiClient.fetchFromSpotifyAPI(endpoint: "me/top/artists?time_range=short_term&limit=10")
             
             if let items = json["items"] as? [[String: Any]] {
                 var genreSet = Set<String>()
@@ -69,14 +62,19 @@ final class ArtistAndGenreService: ObservableObject {
                         genreSet.formUnion(artistGenres)
                     }
                 }
+                
+                // Update state on the main thread
                 DispatchQueue.main.async {
                     self.genres = Array(genreSet).sorted()
                     self.errorMessage = nil
                 }
             } else {
-                DispatchQueue.main.async {
-                    self.errorMessage = "Unexpected data format for genres."
-                }
+                throw SpotifyAPIError.jsonParsingFailed
+            }
+        } catch {
+            // Handle errors gracefully
+            DispatchQueue.main.async {
+                self.errorMessage = error.localizedDescription
             }
         }
     }

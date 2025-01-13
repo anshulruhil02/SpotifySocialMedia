@@ -9,7 +9,8 @@ import SwiftUI
 
 struct HomeView: View {
     @ObservedObject var viewModel: HomeViewModel
-    
+    @State private var selectedTab: String = "Tracks" // Default tab
+
     var body: some View {
         NavigationView {
             VStack {
@@ -18,90 +19,48 @@ struct HomeView: View {
                         .font(.headline)
                         .padding()
                     VStack{
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.white)
-                            .shadow(radius: 5)
-                            .frame(height: 200)
-                            .overlay(
-                                VStack {
-                                    Text("Tracks")
-                                        .font(.title)
-                                        .fontWeight(.bold)
-                                    
-                                    Text("Discover your favorite tracks")
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                    
-                                    Spacer()
-                                    
-                                    // "View All Tracks" Button
-                                    NavigationLink(destination: TrackCardView(viewModel: viewModel)) {
-                                        Text("View All Tracks")
-                                            .font(.headline)
-                                            .foregroundColor(.white)
-                                            .padding()
-                                            .frame(maxWidth: .infinity)
-                                            .background(Color.blue)
-                                            .cornerRadius(10)
-                                    }
-                                    .padding(.horizontal)
-                                }
-                                    .padding()
-                            )
-                            .padding()
                         
-                        
-                        HStack(spacing: 20) {
-                            
-                            Button(action: {
-                                viewModel.fetchTopArtists()
-                            }) {
-                                Text("Top Artists")
-                                    .font(.title3)
-                                    .padding()
-                                    .background(Color.purple)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(10)
-                            }
-                            
-                            Button(action: {
-                                viewModel.fetchGenres()
-                            }) {
-                                Text("Top Genres")
-                                    .font(.title3)
-                                    .padding()
-                                    .background(Color.orange)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(10)
-                            }
+                        // Tab Picker
+                        Picker("Tabs", selection: $selectedTab) {
+                            Text("Tracks").tag("Tracks")
+                            Text("Artists").tag("Artists")
+                            Text("Genres").tag("Genres")
                         }
-                        .padding(.bottom, 20)
+                        .pickerStyle(SegmentedPickerStyle())
+                        .padding()
                         
-                        ScrollView {
-                            VStack(spacing: 20) {
-                                
-                                if !viewModel.topArtistsWithImages.isEmpty {
-                                    ImageCardView(title: "Your Top Artists",
-                                                  items: viewModel.topArtistsWithImages)
-                                }
-                                
-                                if !viewModel.genres.isEmpty {
-                                    CardView(title: "Your Top Genres",
-                                             items: viewModel.genres)
-                                }
-                                
-                                if viewModel.topTracks.isEmpty
-                                    && viewModel.topArtistsWithImages.isEmpty
-                                    && viewModel.genres.isEmpty {
-                                    Text("No data available yet. Fetch your top tracks, artists, and genres!")
-                                        .foregroundColor(.gray)
-                                        .padding()
-                                }
+                        // Content based on selected tab
+                        if selectedTab == "Tracks" {
+                            TrackCardView(viewModel: viewModel)
+                        }
+                        else if selectedTab == "Artists" {
+                            if !viewModel.topArtistsWithImages.isEmpty {
+                                ImageCardView(title: "Your Top Artists", items: viewModel.topArtistsWithImages)
+                            } else {
+                                Text("No artists available yet. Fetching your top artists...")
+                                    .foregroundColor(.gray)
+                                    .padding()
+//                                    .task {
+//                                        viewModel.fetchTopArtists()
+//                                    }
+                            }
+                        } else if selectedTab == "Genres" {
+                            if !viewModel.genres.isEmpty {
+                                CardView(title: "Your Top Genres", items: viewModel.genres)
+                            } else {
+                                Text("No genres available yet. Fetching your top genres...")
+                                    .foregroundColor(.gray)
+                                    .padding()
+//                                    .task {
+//                                        viewModel.fetchGenres()
+//                                    }
                             }
                         }
                     }
                     .task {
-                        viewModel.fetchTopTracks() // Automatically fetch tracks
+                        await viewModel.fetchTopTracks()
+                        await viewModel.fetchTopArtists()
+                        await viewModel.fetchGenres()
                     }
                 } else {
                     Button(action: {
@@ -132,30 +91,32 @@ struct CardView: View {
     let items: [String]
     
     var body: some View {
-        VStack(alignment: .leading) {
-            Text(title)
-                .font(.headline)
-                .padding(.bottom, 5)
-            
-            ForEach(items, id: \ .self) { item in
-                HStack {
-                    Text(item)
-                        .font(.body)
-                        .foregroundColor(.primary)
-                        .padding(.vertical, 5)
-                    
-                    Spacer()
+        ScrollView{
+            VStack(alignment: .leading) {
+                Text(title)
+                    .font(.headline)
+                    .padding(.bottom, 5)
+                
+                ForEach(items, id: \ .self) { item in
+                    HStack {
+                        Text(item)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                            .padding(.vertical, 5)
+                        
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(8)
+                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 3)
                 }
-                .padding(.horizontal)
-                .background(Color(UIColor.secondarySystemBackground))
-                .cornerRadius(8)
-                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 3)
             }
+            .padding()
+            .background(Color(UIColor.systemBackground))
+            .cornerRadius(12)
+            .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 5)
         }
-        .padding()
-        .background(Color(UIColor.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 5)
     }
 }
 
@@ -164,48 +125,50 @@ struct ImageCardView: View {
     let items: [(name: String, imageUrl: String)]
     
     var body: some View {
-        VStack(alignment: .leading) {
-            Text(title)
-                .font(.headline)
-                .padding(.bottom, 5)
-            
-            ForEach(items, id: \ .name) { item in
-                HStack(spacing: 10) {
-                    AsyncImage(url: URL(string: item.imageUrl)) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 50, height: 50)
-                                .clipShape(Circle())
-                        case .failure(_):
-                            Color.red
-                                .frame(width: 50, height: 50)
-                                .clipShape(Circle())
-                        @unknown default:
-                            EmptyView()
+        ScrollView{
+            VStack(alignment: .leading) {
+                Text(title)
+                    .font(.headline)
+                    .padding(.bottom, 5)
+                
+                ForEach(items, id: \ .name) { item in
+                    HStack(spacing: 10) {
+                        AsyncImage(url: URL(string: item.imageUrl)) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 50, height: 50)
+                                    .clipShape(Circle())
+                            case .failure(_):
+                                Color.red
+                                    .frame(width: 50, height: 50)
+                                    .clipShape(Circle())
+                            @unknown default:
+                                EmptyView()
+                            }
                         }
+                        
+                        Text(item.name)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                            .padding(.vertical, 5)
+                        
+                        Spacer()
                     }
-                    
-                    Text(item.name)
-                        .font(.body)
-                        .foregroundColor(.primary)
-                        .padding(.vertical, 5)
-                    
-                    Spacer()
+                    .padding(.horizontal)
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(8)
+                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 3)
                 }
-                .padding(.horizontal)
-                .background(Color(UIColor.secondarySystemBackground))
-                .cornerRadius(8)
-                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 3)
             }
+            .padding()
+            .background(Color(UIColor.systemBackground))
+            .cornerRadius(12)
+            .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 5)
         }
-        .padding()
-        .background(Color(UIColor.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 5)
     }
 }

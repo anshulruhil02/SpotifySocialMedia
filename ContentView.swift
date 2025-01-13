@@ -12,10 +12,6 @@ struct ContentView: View {
         userprofileService: UserProfileService.shared
     )
     
-    @StateObject private var albumsViewModel = AlbumsViewModel(
-        albumService: AlbumService.shared
-    )
-    
     var body: some View {
         TabView {
             // Inject the HomeViewModel into HomeView
@@ -23,13 +19,6 @@ struct ContentView: View {
                 .tabItem {
                     Image(systemName: "house.fill")
                     Text("Home")
-                }
-
-            // Inject the AlbumsViewModel into AlbumsView
-            AlbumsView(viewModel: albumsViewModel)
-                .tabItem {
-                    Image(systemName: "music.note.list")
-                    Text("Albums")
                 }
         }
     }

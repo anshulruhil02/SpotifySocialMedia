@@ -20,7 +20,7 @@ final class UserProfileService: ObservableObject {
 
     // MARK: - Update Listening Data
 
-    func updateListeningData(tracks: [String], albums: [String], genres: [String]) {
+    func updateListeningData(tracks: [String], artists: [String], genres: [String]) {
         guard let uid = Auth.auth().currentUser?.uid else {
             self.errorMessage = "No authenticated user found."
             return
@@ -29,7 +29,7 @@ final class UserProfileService: ObservableObject {
         // Prepare the data structure for listening data
         let listeningData: [String: Any] = [
             "tracks": tracks,
-            "albums": albums,
+            "artists": artists,
             "genres": genres
         ]
 
@@ -65,10 +65,10 @@ final class UserProfileService: ObservableObject {
 
             if let listeningData = snapshot.data()?["listeningData"] as? [String: Any] {
                 let tracks = listeningData["tracks"] as? [String] ?? []
-                let albums = listeningData["albums"] as? [String] ?? []
+                let artists = listeningData["artists"] as? [String] ?? []
                 let genres = listeningData["genres"] as? [String] ?? []
 
-                completion(tracks, albums, genres)
+                completion(tracks, artists, genres)
             } else {
                 self.errorMessage = "Listening data is malformed."
             }

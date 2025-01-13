@@ -103,39 +103,28 @@ final class HomeViewModel: ObservableObject {
         authService.disconnect()
     }
 
-    func fetchTopTracks() {
-        saveListeningData()
-        trackService.fetchTopTracks()
+    func fetchTopTracks() async {
+        await trackService.fetchTopTracks()
+        await saveListeningData()
     }
 
-    func fetchTopArtists() {
-        clearData()
-        artistAndGenreService.fetchTopArtists()
+    func fetchTopArtists() async{
+        await artistAndGenreService.fetchTopArtists()
+        await saveListeningData()
     }
 
-    func fetchGenres() {
-        clearData()
-        artistAndGenreService.fetchGenres()
+    func fetchGenres() async{
+        await artistAndGenreService.fetchGenres()
+        await saveListeningData()
     }
     
-    func saveListeningData() {
-        let trackNames = topTracks.map { $0.name }
-        print("Saving tracks: \(trackNames)")
+    func saveListeningData() async{
         userprofileService.updateListeningData(
-            tracks: trackNames,
-            albums: topArtistsWithImages.map { $0.name },
+            tracks: topTracks.map { $0.name },
+            artists: topArtistsWithImages.map { $0.name },
             genres: genres
         )
     }
-
-    
-//    func saveListeningData() {
-//        userprofileService.updateListeningData(
-//                tracks: topTracks,
-//                albums: topArtistsWithImages.map { $0.name },  // Add album handling later
-//                genres: genres
-//            )
-//        }
 
     func clearData() {
         // Clears local state from published properties

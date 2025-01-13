@@ -19,22 +19,15 @@ final class TrackService: ObservableObject {
     private init() {}
     
     /// Fetch Top Tracks (Short-term)
-    func fetchTopTracks() {
-        apiClient.fetchFromSpotifyAPI(endpoint: "me/top/tracks?time_range=short_term&limit=30") { [weak self] json in
-            guard let self = self else { return }
-            guard let json = json else {
-                // If `json` is nil, error has already been handled/logged in `SpotifyAPIClient`.
-                DispatchQueue.main.async {
-                    self.errorMessage = self.apiClient.errorMessage
-                }
-                return
-            }
+    func fetchTopTracks() async {
+        do {
+            let json = try await apiClient.fetchFromSpotifyAPI(endpoint: "me/top/tracks?time_range=short_term&limit=30")
             
             if let items = json["items"] as? [[String: Any]] {
                 let tracks: [Track] = items.compactMap { item in
-                    let name = item["name"] as? String ?? "Unkown track!"
+                    let name = item["name"] as? String ?? "Unknown track!"
                     let albumDict = item["album"] as? [String: Any]
-                    let albumName = albumDict?["name"] as? String ?? "Unkown Album"
+                    let albumName = albumDict?["name"] as? String ?? "Unknown Album"
                     let artistsArray = item["artists"] as? [[String: Any]] ?? []
                     let artists = artistsArray.compactMap { artistDict in
                         artistDict["name"] as? String
@@ -43,14 +36,18 @@ final class TrackService: ObservableObject {
                     return Track(name: name, album: albumName, artists: artists, popularity: popularity)
                 }
                 
+                // Update the state on the main thread
                 DispatchQueue.main.async {
                     self.topTracks = tracks
                     self.errorMessage = nil
                 }
             } else {
-                DispatchQueue.main.async {
-                    self.errorMessage = "Unexpected data format for tracks."
-                }
+                throw SpotifyAPIError.jsonParsingFailed
+            }
+        } catch {
+            // Handle errors gracefully
+            DispatchQueue.main.async {
+                self.errorMessage = error.localizedDescription
             }
         }
     }

@@ -11,72 +11,62 @@ import SpotifyiOS
 final class SpotifyAPIClient {
     static let shared = SpotifyAPIClient()
     
-    // We'll store the access token here so all services can use the same instance or inject it as needed.
     var accessToken: String?
-    
-    // A placeholder for returning errors if you want to store them at the client level
-    // (In practice, you'd likely handle errors at each service or pass them via a callback.)
-    var errorMessage: String?
     
     private init() {}
     
     /// Generic method to fetch data from Spotify's Web API.
-    /// - Parameters:
-    ///   - endpoint: The endpoint (relative to "https://api.spotify.com/v1/").
-    ///   - completion: Returns a dictionary on success or handles error states.
-    func fetchFromSpotifyAPI(endpoint: String,
-                             completion: @escaping ([String: Any]?) -> Void) {
-        
+    /// - Parameter endpoint: The endpoint (relative to "https://api.spotify.com/v1/").
+    /// - Returns: A dictionary on success, or throws an error on failure.
+    func fetchFromSpotifyAPI(endpoint: String) async throws -> [String: Any] {
         guard let token = accessToken else {
-            print("No access token available")
-            self.errorMessage = "Authentication required to fetch data."
-            completion(nil)
-            return
+            throw SpotifyAPIError.authenticationRequired
         }
         
         let urlString = "https://api.spotify.com/v1/\(endpoint)"
         guard let url = URL(string: urlString) else {
-            print("Invalid endpoint URL: \(urlString)")
-            self.errorMessage = "Invalid URL."
-            completion(nil)
-            return
+            throw SpotifyAPIError.invalidURL
         }
         
         var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.httpMethod = "GET"
         
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Error fetching data: \(error.localizedDescription)")
-                self.errorMessage = "Failed to fetch data."
-                completion(nil)
-                return
-            }
-            
-            guard let data = data else {
-                print("No data received from Spotify API")
-                self.errorMessage = "No data received."
-                completion(nil)
-                return
-            }
-            
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data,
-                                                               options: []) as? [String: Any] {
-                    print("Raw JSON Response (\(endpoint)): \(json)")
-                    completion(json)
-                } else {
-                    print("Failed to parse JSON into dictionary")
-                    self.errorMessage = "Unexpected JSON structure."
-                    completion(nil)
-                }
-            } catch {
-                print("Error decoding JSON: \(error.localizedDescription)")
-                self.errorMessage = "Failed to parse data."
-                completion(nil)
-            }
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        // Validate HTTP response
+        if let httpResponse = response as? HTTPURLResponse,
+           !(200...299).contains(httpResponse.statusCode) {
+            throw SpotifyAPIError.invalidResponse(statusCode: httpResponse.statusCode)
         }
-        task.resume()
+        
+        // Parse JSON
+        guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
+            throw SpotifyAPIError.jsonParsingFailed
+        }
+        
+        print("Raw JSON Response (\(endpoint)): \(json)")
+        return json
+    }
+}
+
+/// Enum to handle Spotify API-specific errors.
+enum SpotifyAPIError: Error, LocalizedError {
+    case authenticationRequired
+    case invalidURL
+    case invalidResponse(statusCode: Int)
+    case jsonParsingFailed
+    
+    var errorDescription: String? {
+        switch self {
+        case .authenticationRequired:
+            return "Authentication required to fetch data."
+        case .invalidURL:
+            return "Invalid endpoint URL."
+        case .invalidResponse(let statusCode):
+            return "Invalid response from the server. Status code: \(statusCode)."
+        case .jsonParsingFailed:
+            return "Failed to parse JSON response."
+        }
     }
 }
